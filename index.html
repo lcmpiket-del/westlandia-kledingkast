@@ -553,6 +553,7 @@
     <button class="btn-new desktop-only" id="btnNewDesktop">+ Nieuw item</button>
   </div>
   <div class="filter-row" id="categoryFilters"></div>
+  <div class="filter-row" id="sizeFilters"></div>
   <div class="filter-row" id="statusFilters"></div>
 </div>
 
@@ -706,6 +707,7 @@ function populateSelect(id, values){
 
 let listings = [];
 let activeCategory = 'Alle';
+let activeSize = 'Alle';
 let activeStatus = 'Te koop';
 let searchTerm = '';
 let editingId = null;
@@ -813,6 +815,19 @@ function buildFilters(){
     });
   });
 
+  const sizeWrap = document.getElementById('sizeFilters');
+  const sizes = ['Alle', ...SIZES];
+  sizeWrap.innerHTML = sizes.map(s =>
+    `<button class="pill ${s===activeSize?'active':''}" data-size="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+  ).join('');
+  sizeWrap.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeSize = btn.dataset.size;
+      buildFilters();
+      render();
+    });
+  });
+
   const statWrap = document.getElementById('statusFilters');
   const stats = ['Te koop', 'Verkocht', 'Alles'];
   statWrap.innerHTML = stats.map(s =>
@@ -830,6 +845,7 @@ function buildFilters(){
 function filteredListings(){
   return listings
     .filter(it => activeCategory === 'Alle' || it.category === activeCategory)
+    .filter(it => activeSize === 'Alle' || it.size === activeSize)
     .filter(it => {
       if(activeStatus === 'Alles') return true;
       if(activeStatus === 'Te koop') return it.status !== 'verkocht';
@@ -929,12 +945,15 @@ function openSheet(){
   const preview = document.getElementById('photoPreview');
   preview.style.display = 'none';
   preview.src = '';
+  document.getElementById('overlay').style.display = '';
   document.getElementById('overlay').classList.add('open');
   document.getElementById('f-title').focus();
 }
 
 function closeSheet(){
-  document.getElementById('overlay').classList.remove('open');
+  const ov = document.getElementById('overlay');
+  ov.classList.remove('open');
+  ov.style.display = 'none';
 }
 
 document.getElementById('btnNewDesktop').addEventListener('click', openSheet);
@@ -987,7 +1006,10 @@ document.getElementById('itemForm').addEventListener('submit', async (e) => {
 
   const priceDisplay = Number.isInteger(price) ? String(price) : price.toFixed(2);
 
-  document.getElementById('btnSubmit').disabled = true;
+  const submitBtn = document.getElementById('btnSubmit');
+  submitBtn.disabled = true;
+  const originalBtnText = submitBtn.textContent;
+  submitBtn.textContent = 'Bezig met plaatsen…';
 
   let photo = null;
   const photoFile = document.getElementById('f-photo').files[0];
@@ -997,7 +1019,8 @@ document.getElementById('itemForm').addEventListener('submit', async (e) => {
     }catch(err){
       errBox.textContent = 'De foto kon niet verwerkt worden, probeer een andere foto.';
       errBox.style.display = 'block';
-      document.getElementById('btnSubmit').disabled = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
       return;
     }
   }
@@ -1015,15 +1038,18 @@ document.getElementById('itemForm').addEventListener('submit', async (e) => {
     console.error(err);
     errBox.textContent = 'Plaatsen is niet gelukt. Controleer je internetverbinding en probeer het opnieuw.';
     errBox.style.display = 'block';
-    document.getElementById('btnSubmit').disabled = false;
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalBtnText;
     return;
   }
 
-  document.getElementById('btnSubmit').disabled = false;
+  submitBtn.disabled = false;
+  submitBtn.textContent = originalBtnText;
 
   closeSheet();
 
   activeCategory = 'Alle';
+  activeSize = 'Alle';
   activeStatus = 'Alles';
   searchTerm = '';
   document.getElementById('searchInput').value = '';
