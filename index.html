@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <style>
   :root{
     --pitch: #1F3D2B;
@@ -657,6 +658,8 @@ const firebaseConfig = {
 let db = null;
 let listingsRef = null;
 let firebaseReady = false;
+  let currentUid = null;
+let loadStarted = false;
 
 function initFirebase(){
   try{
@@ -898,10 +901,10 @@ function render(){
           <div class="price">€${escapeHtml(item.price)}</div>
           <div class="status-flag ${sold ? 'sold-flag':'available'}">${sold ? 'Verkocht' : 'Te koop'}</div>
         </div>
-        <div class="row-actions">
+                ${item.ownerUid && item.ownerUid === currentUid ? `<div class="row-actions">
           <button data-action="toggle">${sold ? 'Weer te koop' : 'Markeer verkocht'}</button>
           <button data-action="delete" class="danger">Verwijderen</button>
-        </div>
+        </div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1031,8 +1034,10 @@ document.getElementById('itemForm').addEventListener('submit', async (e) => {
       price: priceDisplay,
       description, seller, contact,
       photo,
-      status: 'te koop',
-      createdAt: Date.now()
+            status: 'te koop',
+      createdAt: Date.now(),
+      ownerUid: currentUid
+    });
     });
   }catch(err){
     console.error(err);
@@ -1062,7 +1067,19 @@ populateSelect('f-category', CATEGORIES);
 populateSelect('f-size', SIZES);
 buildFilters();
 initFirebase();
-loadListings();
+if(firebaseReady){
+  firebase.auth().onAuthStateChanged((user) => {
+    if(user){
+      currentUid = user.uid;
+      if(!loadStarted){ loadStarted = true; loadListings(); }
+      else render();
+    }
+  });
+  firebase.auth().signInAnonymously().catch((err) => {
+    console.error(err);
+    showToast('Inloggen is niet gelukt. Ververs de pagina.');
+  });
+}
 </script>
 
 </body>
