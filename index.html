@@ -902,10 +902,10 @@ function render(){
           <div class="price">€${escapeHtml(item.price)}</div>
           <div class="status-flag ${sold ? 'sold-flag':'available'}">${sold ? 'Verkocht' : 'Te koop'}</div>
         </div>
-                ${item.ownerUid && item.ownerUid === currentUid ? `<div class="row-actions">
+                       <div class="row-actions">
           <button data-action="toggle">${sold ? 'Weer te koop' : 'Markeer verkocht'}</button>
           <button data-action="delete" class="danger">Verwijderen</button>
-        </div>` : ''}
+        </div>
       </div>
     </div>`;
   }).join('');
